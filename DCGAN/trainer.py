@@ -40,20 +40,26 @@ class GANTrainer:
                 noise = torch.randn(train_params.BATCH_SIZE, train_params.NOISE_DIM, 1, 1).to(self.device)
                 fake = self.generator(noise)
 
+                self.discriminator.zero_grad()
+
                 ### Train Discriminator: max log(D(x)) + log(1 - D(G(z)))
                 disc_real = self.discriminator(real).reshape(-1)
                 lossD_real = train_params.criterion(disc_real, torch.ones_like(disc_real))
                 disc_fake = self.discriminator(fake.detach()).reshape(-1)
                 lossD_fake = train_params.criterion(disc_fake, torch.zeros_like(disc_fake))
                 lossD = (lossD_real + lossD_fake) / 2
-                self.discriminator.zero_grad()
+                
                 lossD.backward()
                 opt_disc.step()
+
+                self.generator.zero_grad()
+
+                noise = torch.randn(train_params.BATCH_SIZE, train_params.NOISE_DIM, 1, 1).to(self.device)
+                fake = self.generator(noise)
 
                 ### Train Generator: min log(1 - D(G(z))) <-> max log(D(G(z))
                 output = self.discriminator(fake).reshape(-1)
                 lossG = train_params.criterion(output, torch.ones_like(output))
-                self.generator.zero_grad()
                 lossG.backward()
                 opt_gen.step()
 
@@ -83,5 +89,4 @@ class GANTrainer:
         fake = fake.permute(1, 2, 0).cpu()
         img = np.hstack([real, fake])
         img = img * 255
-        print(step, real.shape, fake.shape)
         cv2.imwrite(f'{train_params.image_write_path}/step_{step}.png', img)
