@@ -37,17 +37,17 @@ class GANTrainer:
             pbar.set_description(f"Epoch [{epoch}/{train_params.NUM_EPOCHS}] Loss D: {lossD:.4f}, loss G: {lossG:.4f}        ")
             for batch_idx, (real, _) in pbar:
                 real = real.to(self.device)
-
-                ### Train Discriminator: max log(D(x)) + log(1 - D(G(z)))
                 noise = torch.randn(train_params.BATCH_SIZE, train_params.NOISE_DIM, 1, 1).to(self.device)
                 fake = self.generator(noise)
+
+                ### Train Discriminator: max log(D(x)) + log(1 - D(G(z)))
                 disc_real = self.discriminator(real).reshape(-1)
                 lossD_real = train_params.criterion(disc_real, torch.ones_like(disc_real))
-                disc_fake = self.discriminator(fake).reshape(-1)
+                disc_fake = self.discriminator(fake.detach()).reshape(-1)
                 lossD_fake = train_params.criterion(disc_fake, torch.zeros_like(disc_fake))
                 lossD = (lossD_real + lossD_fake) / 2
                 self.discriminator.zero_grad()
-                lossD.backward(retain_graph=True)
+                lossD.backward()
                 opt_disc.step()
 
                 ### Train Generator: min log(1 - D(G(z))) <-> max log(D(G(z))
@@ -79,8 +79,8 @@ class GANTrainer:
             self.save_images(img_grid_real, img_grid_fake, step, train_params)
 
     def save_images(self, real, fake, step, train_params):
-        real = real.permute(1, 2, 0)
-        fake = fake.permute(1, 2, 0)
+        real = real.permute(1, 2, 0).cpu()
+        fake = fake.permute(1, 2, 0).cpu()
         img = np.hstack([real, fake])
         img = img * 255
         print(step, real.shape, fake.shape)
