@@ -1,0 +1,6 @@
+*/logs/*
+*/dataset/*
+*/__pycache__/*
+*.jpg
+*.png
+*.jpeg
